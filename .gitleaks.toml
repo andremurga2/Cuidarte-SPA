@@ -1,0 +1,11 @@
+[extend]
+useDefault = true
+
+[allowlist]
+paths = [
+  '''(^|/)\.env$''',
+  '''node_modules''',
+  '''package-lock\.json''',
+  '''lh\.report''',
+  '''^logs/'''
+]

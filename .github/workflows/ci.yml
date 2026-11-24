@@ -1,0 +1,28 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  seguridad-y-pruebas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Gitleaks (secretos)
+        run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest detect --source /repo --no-git
+      - name: npm audit (SCA)
+        run: cd BACKEND && npm ci && npm audit --omit=dev --audit-level=high
+      - name: Levantar entorno
+        run: |
+          echo "JWT_SECRET=$(openssl rand -hex 32)" > .env
+          echo "COMPOSE_PROJECT_NAME=cuidarteplus-ev" >> .env
+          docker compose up -d --build
+          for i in $(seq 1 30); do curl -sf http://localhost:4444/ && break; sleep 3; done
+      - name: Jest + Supertest
+        run: cd BACKEND && API_URL=http://localhost:4444 npm test
+      - name: k6 (carga)
+        run: docker run --rm -i --network host -e API=http://localhost:4444 grafana/k6 run - < BACKEND/k6.js
+      - name: Trivy backend
+        run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 cuidarteplus-ev-cuidarteplus-backend-ev
+      - name: Trivy frontend
+        run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 cuidarteplus-ev-cuidarteplus-frontend-ev
