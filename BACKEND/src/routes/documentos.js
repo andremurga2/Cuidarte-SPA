@@ -4,7 +4,7 @@ const { pool } = require("../db");
 const jwt = require("jsonwebtoken");
 const delayMiddleware = require("../middleware/delay");
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "inseguro";
+const JWT_SECRET = require("../config").JWT_SECRET;
 
 // Configurar multer para almacenar en memoria
 const upload = multer({
@@ -63,7 +63,7 @@ function requireRole(req, allowedRoles) {
 }
 
 // Subir documento de examen (médico y admin)
-router.post("/", delayMiddleware(5000), upload.single("documento"), async (req, res) => {
+router.post("/", upload.single("documento"), async (req, res) => {
   try {
     const authCheck = await requireRole(req, ["medico", "admin"]);
     if (authCheck.error) {

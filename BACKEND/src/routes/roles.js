@@ -2,7 +2,7 @@ const express = require('express');
 const { pool } = require('../db');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'inseguro';
+const JWT_SECRET = require("../config").JWT_SECRET;
 
 function getUserFromAuthHeader(req) {
   const auth = req.headers.authorization || '';

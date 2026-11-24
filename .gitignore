@@ -3,3 +3,13 @@ node_modules/
 .env
 dist/
 build/
+
+*.tar
+malware.exe
+*.pdf
+lh.report.*
+*.png
+/*.json
+!package.json
+
+logs/

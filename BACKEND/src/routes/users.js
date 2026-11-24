@@ -1,11 +1,12 @@
 const express = require("express");
 const { pool } = require("../db");
 const jwt = require("jsonwebtoken");
+const { hashPassword } = require("../utils/password");
 const validate = require("../middleware/validate");
 const { createUserSchema, updateUserSchema } = require("../validations/users");
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "inseguro";
+const JWT_SECRET = require("../config").JWT_SECRET;
 
 function getUserFromAuthHeader(req) {
   const auth = req.headers.authorization || "";
@@ -34,7 +35,7 @@ router.post("/", validate(createUserSchema), async (req, res) => {
     // Crear usuario
     const result = await pool.query(
       "INSERT INTO usuarios (nombre_usuario, contrasena, correo) VALUES ($1, $2, $3) RETURNING id, nombre_usuario, correo, created_at",
-      [nombre_usuario, contrasena_hash, correo]
+      [nombre_usuario, await hashPassword(contrasena_hash), correo]
     );
     const newUser = result.rows[0];
 
@@ -364,7 +365,7 @@ async function updateUsuarioEmpresa(
     }
     if (contrasena_hash !== undefined) {
       updateFields.push(`contrasena=$${paramIndex++}`);
-      updateValues.push(contrasena_hash);
+      updateValues.push(await hashPassword(contrasena_hash));
     }
     if (correo !== undefined) {
       updateFields.push(`correo=$${paramIndex++}`);
@@ -499,7 +500,7 @@ async function updateUsuarioSistemaMedico(
     }
     if (contrasena_hash !== undefined) {
       updateFields.push(`contrasena=$${paramIndex++}`);
-      updateValues.push(contrasena_hash);
+      updateValues.push(await hashPassword(contrasena_hash));
     }
     if (correo !== undefined) {
       updateFields.push(`correo=$${paramIndex++}`);
