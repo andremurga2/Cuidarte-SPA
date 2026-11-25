@@ -156,7 +156,7 @@ router.get("/", async (req, res) => {
       `SELECT p.*, u.nombre_usuario 
        FROM pacientes p
        LEFT JOIN usuarios u ON u.id = p.usuario_id
-       ORDER BY p.id DESC`
+       ORDER BY p.id DESC LIMIT ${Math.min(parseInt(req.query.limit, 10) || 100, 500)} OFFSET ${Math.max(parseInt(req.query.offset, 10) || 0, 0)}`
     );
 
     res.json(result.rows);

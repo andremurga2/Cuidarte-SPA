@@ -21,7 +21,7 @@ jobs:
       - name: Jest + Supertest
         run: cd BACKEND && API_URL=http://localhost:4444 npm test
       - name: k6 (carga)
-        run: docker run --rm -i --network host -e API=http://localhost:4444 grafana/k6 run - < BACKEND/k6.js
+        run: docker run --rm -i --network host -e API=http://localhost:4444 -e VUS=50 grafana/k6 run - < BACKEND/k6.js
       - name: Trivy backend
         run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 cuidarteplus-ev-cuidarteplus-backend-ev
       - name: Trivy frontend

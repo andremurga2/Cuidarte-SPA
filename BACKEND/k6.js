@@ -1,7 +1,7 @@
 import http from 'k6/http';
 import { check } from 'k6';
 export const options = {
-  scenarios: { carga: { executor: 'constant-vus', vus: 200, duration: '30s' } },
+  scenarios: { carga: { executor: 'constant-vus', vus: Number(__ENV.VUS || 200), duration: '30s' } },
   thresholds: {
     http_req_failed: ['rate<0.01'],
     'http_req_duration{tipo:crud}': ['p(95)<300'],

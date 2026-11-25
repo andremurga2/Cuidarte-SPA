@@ -26,7 +26,7 @@ app.disable("x-powered-by");
 app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:3333" }));
 app.use(express.json({ limit: "1mb" }));
-app.use(morgan("dev"));
+app.use(morgan("combined", { skip: (req, res) => res.statusCode < 400 }));
 
 // Rechaza tokens cerrados con /autenticacion/logout
 app.use((req, res, next) => {

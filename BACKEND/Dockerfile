@@ -1,4 +1,5 @@
 FROM node:20-alpine
+RUN apk upgrade --no-cache
 
 WORKDIR /app
 
@@ -15,6 +16,8 @@ COPY uploads/ ./uploads/
 
 # Crear directorio para uploads si no existe
 RUN mkdir -p uploads/contracts
+# La API no usa npm en ejecucion: se elimina para quitar node-tar vulnerable de la imagen
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx /root/.npm
 
 # Exponer puerto
 EXPOSE 4000
