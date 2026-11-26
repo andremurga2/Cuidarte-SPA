@@ -18,6 +18,7 @@ Paso "k6 estres 200 VUs"      { Get-Content BACKEND\k6.js -Raw | docker run --rm
 Paso "Trivy backend"          { docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL --ignore-unfixed --skip-version-check --exit-code 1 cuidarteplus-ev-cuidarteplus-backend-ev }
 Paso "Trivy frontend"         { docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image --severity HIGH,CRITICAL --ignore-unfixed --skip-version-check --exit-code 1 cuidarteplus-ev-cuidarteplus-frontend-ev }
 Paso "Respaldo + restauracion" { $env:BACKUP_PASSPHRASE = [guid]::NewGuid().ToString("N") + "abcdef"; node scripts\backup.js test; Remove-Item backups\*.enc -ErrorAction SilentlyContinue }
+Paso "Respaldo + restauracion" { $env:BACKUP_PASSPHRASE = [guid]::NewGuid().ToString("N") + "abcdef"; node scripts\backup.js test; Remove-Item backups\*.enc -ErrorAction SilentlyContinue }
 Paso "Gitleaks (secretos)"    { docker run --rm -v "${PWD}:/repo" zricethezav/gitleaks:latest detect --source /repo --no-git }
 $resultados | Format-Table -AutoSize
 "Total: {0} s" -f (($resultados | Measure-Object Segundos -Sum).Sum)
