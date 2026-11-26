@@ -13,3 +13,6 @@ lh.report.*
 !package.json
 
 logs/
+
+backups/
+evidencias/
