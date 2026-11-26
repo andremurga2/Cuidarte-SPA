@@ -37,7 +37,9 @@ FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copiar configuración de nginx personalizada
-RUN apk add --no-cache openssl && mkdir -p /etc/nginx/ssl && openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/cuidarteplus.key -out /etc/nginx/ssl/cuidarteplus.crt -subj "/CN=localhost"
+RUN apk add --no-cache openssl && mkdir -p /etc/nginx/ssl
+COPY ssl-init.sh /docker-entrypoint.d/40-ssl-init.sh
+RUN chmod +x /docker-entrypoint.d/40-ssl-init.sh
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Exponer puerto 80

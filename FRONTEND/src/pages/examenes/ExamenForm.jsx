@@ -248,6 +248,10 @@ export default function ExamenForm({ onSuccess, examenId }) {
       "application/pdf": [".pdf"],
       "image/jpeg": [".jpg", ".jpeg"],
       "image/png": [".png"],
+      "application/msword": [".doc"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+      "application/vnd.ms-powerpoint": [".ppt"],
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
     },
     multiple: false,
     disabled: uploading || loading,
@@ -460,7 +464,7 @@ export default function ExamenForm({ onSuccess, examenId }) {
                           color="text.secondary"
                           sx={{ mt: 1, display: "block" }}
                         >
-                          Formatos permitidos: PDF, JPG, PNG (máximo 10MB)
+                          Formatos permitidos: PDF, DOC, DOCX, PPT, PPTX, JPG, PNG (máximo 10MB)
                         </Typography>
                       </Box>
 

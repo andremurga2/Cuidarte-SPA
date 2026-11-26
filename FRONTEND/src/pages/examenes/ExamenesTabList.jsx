@@ -140,7 +140,7 @@ export default function ExamenesTabList({ items, onLoad, onEdit }) {
                 >
                   <EditIcon fontSize="small" />
                 </IconButton>
-                {role === "admin" && (
+                {(role === "admin" || role === "medico") && (
                   <IconButton
                     size="small"
                     color="error"

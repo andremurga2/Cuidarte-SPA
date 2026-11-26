@@ -20,7 +20,7 @@ const ALLOWED_MIMES = [
 const ALLOWED_EXTS = [".pdf", ".doc", ".docx", ".ppt", ".pptx", ".jpg", ".jpeg", ".png"];
 
 function sanitizeFilename(name) {
-  const base = String(name || "documento").replace(/[\\/]/g, "_").replace(/[^a-zA-Z0-9._-]/g, "_");
+  const base = String(name || "documento").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[\\/]/g, "_").replace(/[^a-zA-Z0-9._-]/g, "_");
   const collapsed = base.replace(/_+/g, "_").replace(/^[._]+/, "");
   return (collapsed || "documento").slice(0, 120);
 }
