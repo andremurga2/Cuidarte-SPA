@@ -58,6 +58,11 @@ describe("Subida de documentos (BUG-016)", () => {
     const r = await subir(tMedico, PPTX, "presentacion.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
     expect(r.status).toBe(201);
   });
+  test("CP-DOC-06 nombre con tildes se conserva sin tildes", async () => {
+    const r = await subir(tMedico, PDF, "Ejecución crítica.pdf", "application/pdf");
+    expect(r.status).toBe(201);
+    expect(JSON.stringify(r.body)).toContain("Ejecucion_critica.pdf");
+  });
   test("CP-DOC-04 ejecutable renombrado a .pdf -> 400", async () => {
     const r = await subir(tMedico, Buffer.from("MZ-falso-pdf"), "falso.pdf", "application/pdf");
     expect(r.status).toBe(400);
