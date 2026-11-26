@@ -1,6 +1,13 @@
 const { pool } = require("./db");
 const { hashPassword } = require("./utils/password");
+async function ensureSchema() {
+  for (const t of ["pacientes", "examen_medico", "documentos_examen"]) {
+    await pool.query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ NULL`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_${t}_deleted_at ON ${t}(deleted_at)`);
+  }
+}
 async function migratePasswords() {
+  await ensureSchema();
   const { rows } = await pool.query(
     "SELECT id, contrasena FROM usuarios WHERE contrasena NOT LIKE '$2%'"
   );

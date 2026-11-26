@@ -156,7 +156,7 @@ router.get("/", async (req, res) => {
       `SELECT p.*, u.nombre_usuario 
        FROM pacientes p
        LEFT JOIN usuarios u ON u.id = p.usuario_id
-       ORDER BY p.id DESC LIMIT ${Math.min(parseInt(req.query.limit, 10) || 100, 500)} OFFSET ${Math.max(parseInt(req.query.offset, 10) || 0, 0)}`
+       WHERE p.deleted_at IS NULL ORDER BY p.id DESC LIMIT ${Math.min(parseInt(req.query.limit, 10) || 100, 500)} OFFSET ${Math.max(parseInt(req.query.offset, 10) || 0, 0)}`
     );
 
     res.json(result.rows);
@@ -228,7 +228,7 @@ router.get("/:id", async (req, res) => {
       `SELECT p.*, u.nombre_usuario 
        FROM pacientes p
        LEFT JOIN usuarios u ON u.id = p.usuario_id
-       WHERE p.id = $1`,
+       WHERE p.id = $1 AND p.deleted_at IS NULL`,
       [req.params.id]
     );
 
@@ -255,7 +255,7 @@ router.get("/buscar/rut/:rut", async (req, res) => {
       `SELECT p.*, u.nombre_usuario 
        FROM pacientes p
        LEFT JOIN usuarios u ON u.id = p.usuario_id
-       WHERE p.rut = $1`,
+       WHERE p.rut = $1 AND p.deleted_at IS NULL`,
       [normalizedRut]
     );
 
@@ -396,7 +396,7 @@ router.delete("/:id", async (req, res) => {
     const { authUser } = authCheck;
 
     const result = await pool.query(
-      "DELETE FROM pacientes WHERE id=$1 RETURNING *",
+      "UPDATE pacientes SET deleted_at = NOW() WHERE id=$1 AND deleted_at IS NULL RETURNING *",
       [req.params.id]
     );
 

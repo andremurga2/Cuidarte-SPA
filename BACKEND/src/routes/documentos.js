@@ -6,6 +6,54 @@ const delayMiddleware = require("../middleware/delay");
 const router = express.Router();
 const JWT_SECRET = require("../config").JWT_SECRET;
 
+const ALLOWED_MIMES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "image/jpeg",
+  "image/jpg",
+  "image/png"
+];
+
+const ALLOWED_EXTS = [".pdf", ".doc", ".docx", ".ppt", ".pptx", ".jpg", ".jpeg", ".png"];
+
+function sanitizeFilename(name) {
+  const base = String(name || "documento").replace(/[\\/]/g, "_").replace(/[^a-zA-Z0-9._-]/g, "_");
+  const collapsed = base.replace(/_+/g, "_").replace(/^[._]+/, "");
+  return (collapsed || "documento").slice(0, 120);
+}
+
+function hasValidMagicBytes(buf, ext) {
+  if (!Buffer.isBuffer(buf) || buf.length < 4) return false;
+  if (ext === ".pdf") {
+    return buf.subarray(0, 5).toString("latin1") === "%PDF-";
+  }
+  if (ext === ".jpg" || ext === ".jpeg") {
+    return buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+  }
+  if (ext === ".png") {
+    if (buf.length < 8) return false;
+    return buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47 &&
+           buf[4] === 0x0d && buf[5] === 0x0a && buf[6] === 0x1a && buf[7] === 0x0a;
+  }
+  if (ext === ".doc" || ext === ".ppt") {
+    if (buf.length < 8) return false;
+    return buf[0] === 0xd0 && buf[1] === 0xcf && buf[2] === 0x11 && buf[3] === 0xe0 &&
+           buf[4] === 0xa1 && buf[5] === 0xb1 && buf[6] === 0x1a && buf[7] === 0xe1;
+  }
+  if (ext === ".docx" || ext === ".pptx") {
+    const isZip = buf[0] === 0x50 && buf[1] === 0x4b &&
+      ((buf[2] === 0x03 && buf[3] === 0x04) || (buf[2] === 0x05 && buf[3] === 0x06) || (buf[2] === 0x07 && buf[3] === 0x08));
+    if (!isZip) return false;
+    const raw = buf.toString("latin1");
+    if (ext === ".docx") return raw.includes("word/");
+    if (ext === ".pptx") return raw.includes("ppt/");
+  }
+  return false;
+}
+
 // Configurar multer para almacenar en memoria
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -13,16 +61,13 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB
   },
   fileFilter: (req, file, cb) => {
-    const allowedMimes = [
-      "application/pdf",
-      "image/jpeg",
-      "image/jpg",
-      "image/png"
-    ];
-    if (allowedMimes.includes(file.mimetype)) {
+    const ext = require("path").extname(file.originalname || "").toLowerCase();
+    if (ALLOWED_MIMES.includes(file.mimetype) && ALLOWED_EXTS.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error("Solo se permiten archivos PDF, JPG o PNG"), false);
+      const err = new Error("Solo se permiten archivos PDF, DOC, DOCX, PPT, PPTX, JPG o PNG");
+      err.statusCode = 400;
+      cb(err, false);
     }
   },
 });
@@ -90,11 +135,20 @@ router.post("/", upload.single("documento"), async (req, res) => {
       });
     }
 
+    const ext = require("path").extname(req.file.originalname || "").toLowerCase();
+    if (!hasValidMagicBytes(req.file.buffer, ext)) {
+      return res.status(400).json({
+        error: "Error de validación",
+        glosa: "El contenido del archivo no coincide con una firma válida para su extensión",
+      });
+    }
+    const cleanName = sanitizeFilename(req.file.originalname);
+
     const result = await pool.query(
       `INSERT INTO documentos_examen (
         examen_medico_id, paciente_id, documento, nombre_archivo
       ) VALUES ($1, $2, $3, $4) RETURNING id, nombre_archivo, created_at`,
-      [examen_medico_id, paciente_id, req.file.buffer, req.file.originalname]
+      [examen_medico_id, paciente_id, req.file.buffer, cleanName]
     );
 
     const documento = result.rows[0];
@@ -110,8 +164,9 @@ router.post("/", upload.single("documento"), async (req, res) => {
     res.status(201).json({ documento });
   } catch (err) {
     console.error(err);
-    res.status(500).json({
-      error: "Error al subir documentos",
+    const status = err.statusCode || (err.name === "MulterError" ? 400 : 500);
+    res.status(status).json({
+      error: status === 400 ? "Error de validación" : "Error al subir documentos",
       glosa: err.message || err.toString(),
     });
   }
@@ -165,7 +220,7 @@ router.get("/examen/:examen_id", async (req, res) => {
     const result = await pool.query(
       `SELECT id, nombre_archivo, created_at
        FROM documentos_examen
-       WHERE examen_medico_id = $1
+       WHERE examen_medico_id = $1 AND deleted_at IS NULL
        ORDER BY created_at DESC`,
       [req.params.examen_id]
     );
@@ -208,7 +263,7 @@ router.get("/:id", async (req, res) => {
        FROM documentos_examen de
        JOIN examen_medico em ON em.id = de.examen_medico_id
        JOIN pacientes p ON p.id = em.paciente_id
-       WHERE de.id = $1`,
+       WHERE de.id = $1 AND de.deleted_at IS NULL AND em.deleted_at IS NULL`,
       [req.params.id]
     );
 
@@ -272,7 +327,7 @@ router.delete("/:id", async (req, res) => {
     const { authUser } = authCheck;
 
     const result = await pool.query(
-      "DELETE FROM documentos_examen WHERE id=$1 RETURNING *",
+      "UPDATE documentos_examen SET deleted_at = NOW() WHERE id=$1 AND deleted_at IS NULL RETURNING *",
       [req.params.id]
     );
 

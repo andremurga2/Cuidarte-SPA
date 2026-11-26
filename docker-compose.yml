@@ -33,7 +33,7 @@ services:
       - DATABASE_URL=postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@cuidarteplus-postgres-ev:5432/${POSTGRES_DB:-cuidarteplus}
       - NODE_ENV=${NODE_ENV:-production}
       - JWT_SECRET=${JWT_SECRET:?Defina JWT_SECRET en .env}
-      - FRONTEND_URL=http://localhost:${PORT_FRONTEND:-3333}
+      - FRONTEND_URL=https://localhost:${PORT_FRONTEND_HTTPS:-3443},http://localhost:${PORT_FRONTEND:-3333}
     ports:
       - "${PORT_BACKEND:-4444}:4000"
     depends_on:
@@ -55,6 +55,7 @@ services:
     hostname: cuidarteplus-web
     ports:
       - "${PORT_FRONTEND:-3333}:80"
+      - "${PORT_FRONTEND_HTTPS:-3443}:443"
     depends_on:
       - cuidarteplus-backend-ev
     networks:

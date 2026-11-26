@@ -136,6 +136,7 @@ router.get("/", async (req, res) => {
        FROM examen_medico em
        JOIN tipo_examen_medico tem ON tem.id = em.tipo_examen_medico_id
        JOIN pacientes p ON p.id = em.paciente_id
+       WHERE em.deleted_at IS NULL AND p.deleted_at IS NULL
     `;
     const queryParams = [];
     let paramIndex = 1;
@@ -156,7 +157,7 @@ router.get("/", async (req, res) => {
       }
 
       const pacienteId = pacienteResult.rows[0].id;
-      query += ` WHERE em.paciente_id = $${paramIndex}`;
+      query += ` AND em.paciente_id = $${paramIndex}`;
       queryParams.push(pacienteId);
       paramIndex++;
     }
@@ -216,7 +217,7 @@ router.get("/:id", async (req, res) => {
        FROM examen_medico em
        JOIN tipo_examen_medico tem ON tem.id = em.tipo_examen_medico_id
        JOIN pacientes p ON p.id = em.paciente_id
-       WHERE em.id = $1
+       WHERE em.id = $1 AND em.deleted_at IS NULL AND p.deleted_at IS NULL
     `;
     const queryParams = [req.params.id];
 
@@ -311,7 +312,7 @@ router.get("/paciente/:paciente_id", async (req, res) => {
        FROM examen_medico em
        JOIN tipo_examen_medico tem ON tem.id = em.tipo_examen_medico_id
        JOIN pacientes p ON p.id = em.paciente_id
-       WHERE em.paciente_id = $1
+       WHERE em.paciente_id = $1 AND em.deleted_at IS NULL AND p.deleted_at IS NULL
        ORDER BY em.created_at DESC`,
       [req.params.paciente_id]
     );
@@ -395,7 +396,7 @@ router.put("/:id", validate(updateExamenMedicoSchema), async (req, res) => {
 // Eliminar examen médico (solo admin)
 router.delete("/:id", async (req, res) => {
   try {
-    const authCheck = await requireRole(req, ["admin"]);
+    const authCheck = await requireRole(req, ["medico", "admin"]);
     if (authCheck.error) {
       return res.status(authCheck.status).json({
         error: authCheck.error,
@@ -405,7 +406,7 @@ router.delete("/:id", async (req, res) => {
     const { authUser } = authCheck;
 
     const result = await pool.query(
-      "DELETE FROM examen_medico WHERE id=$1 RETURNING *",
+      "UPDATE examen_medico SET deleted_at = NOW() WHERE id=$1 AND deleted_at IS NULL RETURNING *",
       [req.params.id]
     );
 
