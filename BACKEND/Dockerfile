@@ -12,10 +12,10 @@ RUN npm ci --omit=dev
 # Copiar código de la aplicación
 COPY src/ ./src/
 COPY sql/ ./sql/
-COPY uploads/ ./uploads/
+# uploads se crea al construir (no se versiona)
 
 # Crear directorio para uploads si no existe
-RUN mkdir -p uploads/contracts
+RUN mkdir -p uploads/contracts uploads/documentos
 # La API no usa npm en ejecucion: se elimina para quitar node-tar vulnerable de la imagen
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx /root/.npm
 
